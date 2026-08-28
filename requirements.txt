@@ -1,0 +1,8 @@
+opencv-python>=4.10.0
+numpy>=2.0.0
+scikit-image>=0.24.0
+pandas>=2.2.0
+matplotlib>=3.9.0
+streamlit>=1.62.0
+streamlit-pdf>=1.0.0
+altair>=5.5.0

@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+data/raw/
+.env
+.streamlit/secrets.toml
+*.egg-info/
+.pytest_cache/
+
+# LaTeX intermediates and Tectonic working copy
+report/*.aux
+report/*.bbl
+report/*.blg
+report/*.log
+report/*.out
+report/main.pdf

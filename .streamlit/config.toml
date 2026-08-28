@@ -1,0 +1,18 @@
+[theme]
+base = "light"
+primaryColor = "#1f4e79"
+backgroundColor = "#f7f4ee"
+secondaryBackgroundColor = "#ebe6dc"
+textColor = "#1f2328"
+linkColor = "#1f4e79"
+borderColor = "#d6cfc2"
+font = "sans serif"
+
+[theme.sidebar]
+backgroundColor = "#ebe6dc"
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+headless = true

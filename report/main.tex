@@ -1,0 +1,242 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+
+\cvprfinalcopy
+
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+\setcounter{page}{1}
+
+\begin{document}
+
+\title{Feature-based Image Matching and Automatic Panorama Construction}
+
+\author{
+Shadrack Bentil\\
+MSc Computer Science\\
+University of Ghana, Legon\\
+{\tt\small sbentil005@st.ug.edu.gh}
+}
+
+\maketitle
+
+\begin{abstract}
+This report describes a classical computer-vision system that identifies corresponding regions in overlapping photographs and combines them into a panorama. Keypoints are detected and described with SIFT and with ORB, matched by $k$-nearest neighbours and Lowe's ratio test, and filtered with RANSAC to estimate a homography. Every view is warped into the coordinate system of the middle image and the overlap is feather-blended. The implementation uses OpenCV primitives only: it does not call a high-level stitcher or a pretrained recogniser. On a controlled five-image mural with about 50\% overlap, both detectors produce a complete panorama. Mean inlier ratios are similar (about 0.73), but SIFT is the tighter geometric estimator (mean reprojection error about 0.06\,px versus about 0.4\,px for ORB) while ORB is faster. Both methods fail when brightness is crushed to a gain of 0.35, and viewpoint change off the plane raises reprojection error above 2\,px. An interactive application exposes every stage of the pipeline.
+\end{abstract}
+
+\section{Introduction}
+
+A panorama is a single wide image assembled from several photographs of the same scene. Consumer cameras hide the geometry: they find the same landmarks in neighbouring frames, discard inconsistent correspondences, and warp one frame onto another. Those steps are standard computer vision --- feature detection, description, matching, robust homography estimation, and blending --- rather than a learned recogniser.
+
+This project implements that chain explicitly. The objectives are:
+\begin{enumerate}
+\item Detect distinctive keypoints and compute descriptors with two established methods, SIFT and ORB.
+\item Match descriptors between overlapping pairs and visualise correspondences before and after RANSAC.
+\item Estimate a homography, warp images into one coordinate system, and stitch a panorama from at least three views.
+\item Compare the detectors on keypoint count, match count, inlier count, inlier ratio, processing time, and panorama quality.
+\item Measure how rotation, scale, illumination, and viewpoint change affect the inlier ratio.
+\end{enumerate}
+
+The contribution is a transparent, reproducible pipeline and a walkthrough interface that makes each geometric decision visible.
+
+\section{Related Work}
+
+Scale-invariant feature transform (SIFT) describes a keypoint by a histogram of local gradients and is designed to be stable under scale and rotation~\cite{lowe2004sift}. Oriented FAST and rotated BRIEF (ORB) replaces that histogram with a binary descriptor around FAST corners; matching uses Hamming distance and is typically cheaper~\cite{rublee2011orb}. Random sample consensus (RANSAC) estimates a parametric model in the presence of outliers by repeatedly fitting a minimal sample and counting inliers~\cite{fischler1981ransac}. A homography maps a plane in one camera to another, or equivalently maps views related by a pure rotation about the optical centre~\cite{hartley2003mvg}. Brown and Lowe showed that invariant features plus RANSAC homographies are sufficient to assemble panoramas automatically~\cite{brown2007panorama}. OpenCV provides the detectors, matchers, and perspective warp used here~\cite{bradski2000opencv}. High-level stitchers and learned detectors are intentionally avoided so that each stage remains inspectable.
+
+\section{Method}
+
+The pipeline is: overlapping photos $\rightarrow$ prepare $\rightarrow$ detect and describe $\rightarrow$ match $\rightarrow$ RANSAC $\rightarrow$ homography $\rightarrow$ warp to the middle photo $\rightarrow$ feather blend $\rightarrow$ panorama.
+
+\paragraph{Preparation.}
+Each image is resized so the long edge is 1200\,px, lightly Gaussian-smoothed, and optionally contrast-limited adaptive histogram equalisation (CLAHE) is applied on the grayscale copy used for detection. Colour is kept for warping and blending. CLAHE is justified when illumination varies across the frame; blur suppresses high-frequency noise without deleting corners.
+
+\paragraph{SIFT versus ORB.}
+SIFT builds a gradient-histogram descriptor that is designed to be stable under scale and rotation. ORB combines FAST corners with a rotated BRIEF binary descriptor: Hamming matching is fast, but intensity changes scramble the binary tests. Using the same Lowe ratio ($0.75$) and the same RANSAC threshold ($5$\,px) keeps the comparison fair. Keypoints are capped at 2000 per image.
+
+\paragraph{Matching.}
+Brute-force $k$NN ($k{=}2$) with Lowe's ratio test. SIFT uses $L_2$; ORB uses Hamming. Cross-check is off so the ratio test remains the only filter before RANSAC.
+
+\paragraph{RANSAC homography.}
+A homography is the right model when the scene is approximately planar or the camera rotates about its optical centre. RANSAC is justified because putative matches always contain outliers. Inliers after RANSAC are the correspondences that are trusted.
+
+\paragraph{Middle image as reference.}
+Pairwise homographies are composed so that every photo is mapped into the middle photo's frame. Sequential left-to-right warping would accumulate error; a centre reference splits that chain.
+
+\paragraph{Blending.}
+After \texttt{warpPerspective}, each warped mask is converted to a distance-transform weight and the colours are averaged in the overlap (feathering). This is enough to hide seams without a multi-band pyramid.
+
+Panorama quality is reported as (i)~inlier ratio, (ii)~mean reprojection error of inliers, and (iii)~structural similarity (SSIM) on the overlap after warping~\cite{wang2004ssim}. High SSIM on the mural is expected: the source is planar, so a homography can align it almost exactly. Real photographs with parallax would score lower.
+
+\section{Dataset}
+
+Four folders live in \texttt{data/scenes/}. They were generated by \texttt{scripts/generate\_sample\_images.py} as a controlled textured mural (labelled buildings and indoor posters) so overlap, lighting, and viewpoint can be varied on demand. The same code accepts phone photographs dropped into the same folders.
+
+\begin{table}[t]
+\centering
+\setlength{\tabcolsep}{3.2pt}
+{\small
+\begin{tabular}{|l|c|p{0.42\linewidth}|}
+\hline
+Set & Images & Role \\
+\hline\hline
+\texttt{scene\_main} & 5 & Primary panorama; $\sim$50\% overlap \\
+\texttt{scene\_viewpoint} & 3 & Front, oblique, and side views \\
+\texttt{scene\_lighting} & 3 & Daylight, shade, and dim \\
+\texttt{scene\_second} & 5 & Extra noticeboard scene \\
+\hline
+\end{tabular}
+}
+\caption{Bundled overlapping-view sets. Rotation ($15^\circ$--$90^\circ$) and scale ($0.5\times$--$1.5\times$) are applied in software to a main pair.}
+\label{tab:data}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.98\linewidth]{figures/input_scene_main.png}
+\caption{Five overlapping courtyard views from \texttt{scene\_main}, the primary stitch set.}
+\label{fig:input}
+\end{figure*}
+
+\section{Implementation}
+
+The pipeline is shared by the batch experiments and the Streamlit walkthrough.
+
+\begin{table}[t]
+\centering
+\setlength{\tabcolsep}{2.8pt}
+{\small
+\begin{tabular}{|l|p{0.48\linewidth}|}
+\hline
+Module & Responsibility \\
+\hline\hline
+\texttt{preprocess.py} & Resize, denoise, CLAHE \\
+\texttt{features.py} & SIFT and ORB \\
+\texttt{matching.py} & $k$NN and Lowe ratio \\
+\texttt{homography.py} & RANSAC, composition, warp \\
+\texttt{stitch.py} & Canvas and feather blend \\
+\texttt{pipeline.py} & Pair matching and multi-image stitch \\
+\texttt{evaluate.py} & Inlier ratio, reprojection, SSIM \\
+\texttt{robustness.py} & Rotate, scale, brightness \\
+\texttt{run\_experiments.py} & Tables and figures \\
+\texttt{streamlit\_app.py} & Interactive walkthrough \\
+\hline
+\end{tabular}
+}
+\caption{Code layout under \texttt{src/} and \texttt{scripts/}.}
+\label{tab:code}
+\end{table}
+
+\section{Experimental Results}
+
+\subsection{Detector comparison}
+
+Numbers in Table~\ref{tab:det} are from \texttt{report/results/detector\_comparison.csv} on consecutive \texttt{scene\_main} pairs. Full five-image stitch: SIFT $0.60$\,s, ORB $0.43$\,s. Mean inlier ratios are close (SIFT $0.733$, ORB $0.734$) on this easy planar scene. The discriminating number is reprojection error: SIFT stays around $0.06$\,px, ORB around $0.4$\,px. Both panoramas are visually complete (Figure~\ref{fig:panos}).
+
+\begin{table*}[t]
+\centering
+\setlength{\tabcolsep}{2.6pt}
+{\scriptsize
+\begin{tabular}{|l|c|c|c|c|c|c|c|c|}
+\hline
+Det. & Pair & Kpts (L/R) & Init.\ matches & Inliers & Ratio & Reproj.\ (px) & SSIM & Time (s) \\
+\hline\hline
+SIFT & 1--2 & 2000 / 2000 & 1301 & 1096 & 0.842 & 0.052 & 0.998 & 0.129 \\
+SIFT & 2--3 & 2000 / 2000 & 866 & 615 & 0.710 & 0.065 & 0.997 & 0.073 \\
+SIFT & 3--4 & 2000 / 2001 & 1133 & 821 & 0.725 & 0.063 & 0.997 & 0.078 \\
+SIFT & 4--5 & 2001 / 2001 & 787 & 514 & 0.653 & 0.071 & 0.998 & 0.072 \\
+ORB & 1--2 & 2000 / 2000 & 981 & 793 & 0.808 & 0.316 & 0.997 & 0.123 \\
+ORB & 2--3 & 2000 / 2000 & 644 & 410 & 0.637 & 0.485 & 0.994 & 0.028 \\
+ORB & 3--4 & 2000 / 2000 & 915 & 727 & 0.795 & 0.407 & 0.997 & 0.030 \\
+ORB & 4--5 & 2000 / 2000 & 731 & 510 & 0.698 & 0.411 & 0.997 & 0.029 \\
+\hline
+\end{tabular}
+}
+\caption{SIFT versus ORB on consecutive pairs of \texttt{scene\_main}. Inlier ratio is inliers over initial matches after Lowe's test. Reprojection is the mean error of RANSAC inliers.}
+\label{tab:det}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.98\linewidth]{figures/detector_comparison.png}
+\caption{Summary of keypoint count, inlier ratio, reprojection error, and pair time for SIFT versus ORB.}
+\label{fig:detplot}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/panorama_sift.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/panorama_orb.png}
+\caption{Five-image panoramas on \texttt{scene\_main}. Left: SIFT. Right: ORB. Both stitches are complete on this planar mural.}
+\label{fig:panos}
+\end{figure*}
+
+\subsection{Robustness}
+
+\paragraph{Rotation.}
+Inlier ratio dips at $15^\circ$--$45^\circ$ then recovers at $90^\circ$ (the mural has many axis-aligned windows, so a right angle is a friendly case). SIFT's surviving inliers stay geometrically tight (reprojection about $0.12$--$0.24$\,px) while ORB's error sits near $1$\,px.
+
+\paragraph{Scale.}
+At $0.5\times$ both detectors lose matches (SIFT 189 inliers, ORB 155). At $1.5\times$ both recover. SIFT's inlier ratio at native scale is $0.71$ versus $0.50$ at half size.
+
+\paragraph{Illumination.}
+A modest darkening (gain $0.55$) is tolerable. At gain $0.35$ both methods fail: SIFT 15 inliers, ORB 18. Brightening (gain $1.45$) hurts ORB more (inlier ratio $0.39$ versus SIFT $0.64$). The dedicated lighting pair is an easier shade gradient and both detectors remain healthy.
+
+\paragraph{Viewpoint.}
+Front versus oblique or side views drop overlap SSIM from about $1.00$ to $0.57$--$0.74$ and raise reprojection error to about $1.4$--$2.3$\,px. That is the first experiment that is not a pure plane motion of the mural, and it is where the homography model strains.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/robustness_rotation.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/robustness_scale.png}\\[0.4em]
+\includegraphics[width=0.48\linewidth]{figures/robustness_illumination.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/robustness_viewpoint.png}
+\caption{Robustness sweeps. Top left: rotation. Top right: scale. Bottom left: illumination gain (and a dedicated lighting pair). Bottom right: viewpoint change off the plane.}
+\label{fig:robust}
+\end{figure*}
+
+\subsection{Quantitative summary}
+
+\begin{itemize}
+\item \textbf{Keypoints} --- both detectors hit the 2000 cap; the scene is rich in corners.
+\item \textbf{Initial matches} --- SIFT returns more ratio-test survivors on every main pair.
+\item \textbf{RANSAC inliers / inlier ratio} --- similar ratios; SIFT usually contributes more inliers in absolute count.
+\item \textbf{Processing time} --- ORB is faster after the first pair (binary matching).
+\item \textbf{Panorama quality} --- overlay SSIM about $0.997$ on the planar mural; mean reprojection error favours SIFT by roughly six to eight times.
+\end{itemize}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.48\linewidth]{figures/matches_after_sift.png}\hfill
+\includegraphics[width=0.48\linewidth]{figures/warp_overlay_sift.png}
+\caption{Left: SIFT inliers after RANSAC on a main pair. Right: warped overlay of the same pair. The Streamlit application shows keypoints, putative matches, inliers, the overlay, and the final panorama interactively.}
+\label{fig:matches}
+\end{figure*}
+
+\section{Discussion and Limitations}
+
+\begin{enumerate}
+\item \textbf{Homography assumes a plane (or pure rotation).} Trees, people, or a nearby object with parallax will ghost. The viewpoint set already raises reprojection error above $2$\,px.
+\item \textbf{Low overlap.} Pairs 4--5 have the weakest inlier ratio (SIFT $0.65$). Below about 30\% overlap, RANSAC may not find a consistent homography.
+\item \textbf{Severe illumination.} Gain $0.35$ leaves fewer than 20 inliers --- not enough for a stable homography in harder scenes.
+\item \textbf{Moving objects} in the overlap would generate persistent outliers; RANSAC can ignore some of them, but the blend will still ghost.
+\item \textbf{Synthetic mural.} Corners are unusually clean, so both detectors look strong. Phone photographs of a courtyard at dusk would widen the SIFT--ORB gap, especially under lighting.
+\item \textbf{Feather blending} cannot hide large exposure differences or parallax; a multi-band blend would be a natural extension.
+\item \textbf{Feature budget.} Capping at 2000 keypoints is a speed choice; a textureless wall would need a different detector response threshold, not a higher cap.
+\end{enumerate}
+
+\section{Conclusion}
+
+The system demonstrates the full classical chain from overlapping views to a panorama, with SIFT and ORB compared on the metrics listed above. On a well-textured planar scene both detectors stitch a complete five-image panorama; SIFT is the more accurate geometric estimator, ORB is the faster one, and both break when the light is crushed or the viewpoint leaves the plane. The interactive application makes each of those statements visible without treating stitching as a black box.
+
+{\small
+\bibliographystyle{ieee}
+\bibliography{references}
+}
+
+\end{document}
