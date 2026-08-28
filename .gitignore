@@ -15,3 +15,4 @@ report/*.blg
 report/*.log
 report/*.out
 report/main.pdf
+report/submission.pdf

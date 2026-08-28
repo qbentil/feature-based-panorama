@@ -7,7 +7,9 @@ are added. They include distinctive textured landmarks so SIFT/ORB can match.
 
 from __future__ import annotations
 
+import argparse
 import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -276,6 +278,22 @@ def adjust_light(img: np.ndarray, gain: float, shadow_left: bool = False) -> np.
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Write synthetic mural scenes.")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite real Commons photos in data/scenes/ with synthetic murals.",
+    )
+    args = parser.parse_args()
+    attribution = ROOT / "data" / "ATTRIBUTION.md"
+    if attribution.exists() and not args.force:
+        print(
+            "data/scenes/ currently holds Wikimedia Commons campus photos.\n"
+            "Refusing to overwrite. Pass --force to write synthetic murals instead.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
     rng = np.random.default_rng(608)
     campus = campus_mural(rng)
     indoor = indoor_mural(rng)

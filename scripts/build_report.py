@@ -10,8 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 REPORT = ROOT / "report"
 TEX = REPORT / "main.tex"
+SUBMISSION_TEX = REPORT / "submission.tex"
 COMPILED = REPORT / "main.pdf"
 OUT_PDF = REPORT / "feature_based_panorama.pdf"
+SUBMISSION_PDF = REPORT / "Bentil_feature_based_panorama_submission.pdf"
 
 
 def tectonic_bin() -> str:
@@ -34,6 +36,13 @@ def main() -> None:
         raise RuntimeError("Tectonic did not produce main.pdf")
     shutil.copy2(COMPILED, OUT_PDF)
     print(f"Wrote {OUT_PDF} ({OUT_PDF.stat().st_size} bytes)")
+
+    if SUBMISSION_TEX.exists():
+        subprocess.run([tex, SUBMISSION_TEX.name], check=True, cwd=str(REPORT))
+        compiled_sub = REPORT / "submission.pdf"
+        if compiled_sub.exists() and compiled_sub.stat().st_size > 0:
+            shutil.copy2(compiled_sub, SUBMISSION_PDF)
+            print(f"Wrote {SUBMISSION_PDF} ({SUBMISSION_PDF.stat().st_size} bytes)")
 
 
 if __name__ == "__main__":

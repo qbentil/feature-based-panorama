@@ -61,12 +61,16 @@ st.markdown(
 - **Robustness lab** — rotate, scale, or darken one photo and watch the inlier ratio fall. Viewpoint uses a separate photo set.
 - **Saved results** — tables and figures written by `scripts/run_experiments.py`.
 - **Project report** — the full technical report as a PDF.
+
+Live app: [feature-based-panorama.streamlit.app](https://feature-based-panorama.streamlit.app/) · source: [github.com/qbentil/feature-based-panorama](https://github.com/qbentil/feature-based-panorama)
 """
 )
 
 st.info(
-    "The bundled campus and noticeboard scenes are synthetic stand-ins so the "
-    "app runs immediately. Replace them with your own overlapping phone photos "
-    "when you can — the method does not change.",
+    "The bundled scenes are real University of Ghana campus photographs from "
+    "Wikimedia Commons (Balme Library, Dance Department, Night Market, "
+    "Commonwealth Hall). They were not all shot as a dedicated panorama, so "
+    "some sets overlap much more than others. Drop your own overlapping photos "
+    "in the same folders when you can — the method does not change.",
     icon=":material/info:",
 )

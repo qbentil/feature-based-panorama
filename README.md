@@ -16,7 +16,7 @@ Full write-up: [report/main.tex](report/main.tex) (CVPR LaTeX) · PDF: [report/f
 
 ## Abstract
 
-This project recovers a single panoramic image from three or more overlapping views of a scene. Distinctive keypoints are detected and described with SIFT and ORB, matched with Lowe's ratio test, and filtered with RANSAC to estimate a homography. Every image is warped into the middle view's coordinate system and the overlap is feather-blended. On a controlled five-image mural, both detectors produce a complete panorama; SIFT is the tighter geometric estimator (mean reprojection error ~0.06 px versus ~0.4 px for ORB) while ORB is faster. Both methods fail under severe underexposure and when viewpoint change leaves the plane.
+This project recovers a single panoramic image from three or more overlapping views of a scene. Distinctive keypoints are detected and described with SIFT and ORB, matched with Lowe's ratio test, and filtered with RANSAC to estimate a homography. Every image is warped into the middle view's coordinate system and the overlap is feather-blended. On three Balme Library photographs, both detectors produce a complete panorama (mean inlier ratio ~0.95 for SIFT and ~0.91 for ORB). Both methods fail under severe underexposure and when viewpoint change leaves the overlapping region.
 
 ---
 
@@ -56,8 +56,10 @@ Open the app, pick **scene main**, click **Stitch**, then step through keypoints
 | `src/` | Pipeline used by both the app and the experiment script |
 | `app_pages/` | Streamlit UI |
 | `scripts/run_experiments.py` | SIFT vs ORB table and robustness figures |
+| `scripts/download_ug_commons.py` | Fetch CC campus photos into `data/scenes/` |
 | `scripts/build_report.py` | Compile CVPR LaTeX (`report/main.tex`) with Tectonic |
-| `data/scenes/` | Input photos |
+| `data/scenes/` | Input photos (Wikimedia Commons, Legon) |
+| `data/ATTRIBUTION.md` | Photo authors and licences |
 | `report/main.tex` | Technical report (CVPR 10pt two-column template) |
 | `report/feature_based_panorama.pdf` | Typeset PDF |
 | `report/figures/` | Generated evidence |
@@ -66,7 +68,7 @@ Open the app, pick **scene main**, click **Stitch**, then step through keypoints
 
 ## Dataset
 
-Bundled scenes in `data/scenes/` are synthetic overlapping views so the app runs immediately. Capture notes are in [`data/README.md`](data/README.md). Drop your own JPEGs into the same folders when you have them.
+Bundled scenes in `data/scenes/` are real University of Ghana campus photographs from Wikimedia Commons (CC BY / CC BY-SA). Attribution is in [`data/ATTRIBUTION.md`](data/ATTRIBUTION.md). Capture notes are in [`data/README.md`](data/README.md).
 
 Experiments record, for each detector:
 
