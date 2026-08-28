@@ -1,91 +1,166 @@
-\documentclass[10pt,twocolumn,letterpaper]{article}
+\documentclass[11pt,a4paper]{article}
 
-\usepackage{cvpr}
+\usepackage[margin=22mm]{geometry}
 \usepackage{times}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{listings}
 \usepackage{xcolor}
-\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
 
-\cvprfinalcopy
-\setcounter{page}{1}
+\definecolor{ugnavy}{HTML}{2F5496}
+\definecolor{codebg}{HTML}{F3F4F6}
+\definecolor{codeframe}{HTML}{D1D5DB}
+
+\titleformat{\section}{\large\bfseries\color{ugnavy}}{\thesection.}{0.7em}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{ugnavy}}{\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.3em}{0.45em}
+\titlespacing*{\subsection}{0pt}{1.0em}{0.3em}
 
 \lstset{
-  basicstyle=\ttfamily\scriptsize,
-  breaklines=true,
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
   frame=single,
+  rulecolor=\color{codeframe},
+  breaklines=true,
   columns=fullflexible,
   keepspaces=true,
-  xleftmargin=2pt,
-  xrightmargin=2pt
+  showstringspaces=false,
+  xleftmargin=6pt,
+  xrightmargin=6pt,
+  aboveskip=8pt,
+  belowskip=8pt,
+  captionpos=b
 }
+
+\hypersetup{
+  colorlinks=true,
+  urlcolor=ugnavy,
+  linkcolor=ugnavy
+}
+
+\graphicspath{{submission_shots/}{figures/}}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\setstretch{1.15}
 
 \begin{document}
 
-\title{Feature-based Image Matching and Automatic Panorama Construction\\{\large Submission packet}}
+% ---------------------------------------------------------------------------
+% Cover (University of Ghana style; not the CVPR two-column template)
+% ---------------------------------------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+\vspace*{2.4cm}
 
-\author{
-Shadrack Bentil\\
-MSc Computer Science\\
-University of Ghana, Legon\\
-{\tt\small sbentil005@st.ug.edu.gh}
-}
+{\color{ugnavy}\large\bfseries\MakeUppercase{University of Ghana}}\\[0.35em]
+{\large Department of Computer Science}\\[0.15em]
+{\normalsize MSc Computer Science}
 
-\maketitle
+\vspace{1.1em}
+{\color{ugnavy}\rule{0.62\textwidth}{1.4pt}}
 
-\begin{abstract}
-This packet summarises a classical OpenCV panorama pipeline (detect $\rightarrow$ describe $\rightarrow$ match $\rightarrow$ RANSAC $\rightarrow$ homography $\rightarrow$ warp $\rightarrow$ stitch), with source excerpts, experiment figures, and screenshots of the interactive app. The full CVPR-formatted report, code, and data live in the public repository. The live demonstration is hosted on Streamlit Community Cloud.
-\end{abstract}
+\vspace{1.4em}
+{\Large\bfseries\color{ugnavy} Feature-based Image Matching\\[0.25em]
+and Automatic Panorama Construction}
 
+\vspace{0.7em}
+{\large Project report}
+
+\vspace{1.8em}
+{\large Shadrack Bentil}\\[0.35em]
+{\normalsize\texttt{sbentil005@st.ug.edu.gh}}\\[0.2em]
+{\normalsize GitHub: \texttt{@qbentil}}
+
+\vspace{1.6em}
+{\normalsize August 2026}
+
+\vspace{1.8em}
+{\color{ugnavy}\rule{0.62\textwidth}{1.4pt}}
+
+\vspace{1.2em}
+\begin{minipage}{0.82\textwidth}
+\centering\normalsize\color{black!55}
+A classical OpenCV pipeline (detect, describe, match, RANSAC, warp, stitch)
+with an interactive walkthrough. The full two-column technical paper lives on
+the live app's Project report tab and is not this document.
+\end{minipage}
+
+\vfill
+\end{titlepage}
+\setcounter{page}{1}
+
+% ---------------------------------------------------------------------------
 \section{Where to find the work}
 
 \begin{itemize}
-\item \textbf{Live app:} \url{https://feature-based-panorama.streamlit.app/}
-\item \textbf{Source (public):} \url{https://github.com/qbentil/feature-based-panorama}
-\item \textbf{Full report PDF} in the repo: \texttt{report/feature\_based\_panorama.pdf} (also embedded on the app's Project report tab)
+  \item \textbf{Live application:} \url{https://feature-based-panorama.streamlit.app/}
+  \item \textbf{Source (public):} \url{https://github.com/qbentil/feature-based-panorama}
+  \item \textbf{Full technical paper (CVPR LaTeX):} \texttt{report/feature\_based\_panorama.pdf}
+        in the repository, also embedded on the app's \emph{Project report} tab.
 \end{itemize}
 
-The repository contains the pipeline under \texttt{src/}, the Streamlit walkthrough under \texttt{app\_pages/}, Wikimedia Commons campus photographs (Balme Library, Dance Department, Night Market, Commonwealth Hall) with licences in \texttt{data/ATTRIBUTION.md}, and experiment tables in \texttt{report/results/}.
+This file is the short project packet: method, source excerpts, experiment
+figures, and screenshots of the running app. It is \textbf{not} the CVPR paper
+shown in the application.
 
-The implementation does \textbf{not} call \texttt{cv2.Stitcher}, YOLO, or any pretrained recogniser.
+The repository contains the pipeline under \texttt{src/}, the Streamlit
+walkthrough under \texttt{app\_pages/}, Wikimedia Commons campus photographs
+(Balme Library, Dance Department, Night Market, Commonwealth Hall) with
+licences in \texttt{data/ATTRIBUTION.md}, and experiment tables in
+\texttt{report/results/}. The implementation does \textbf{not} call
+\texttt{cv2.Stitcher}, YOLO, or any pretrained recogniser.
 
-\section{App walkthrough}
+% ---------------------------------------------------------------------------
+\section{Introduction}
 
-Six tabs: How it works, Build a panorama, Compare detectors, Robustness lab, Saved results, Project report.
+A panorama is a single wide image assembled from overlapping photographs of
+the same scene. Consumer cameras hide the geometry: they find the same
+landmarks in neighbouring frames, discard inconsistent correspondences, and
+warp one frame onto another. Those steps are standard computer vision---feature
+detection, description, matching, robust homography estimation, and
+blending---rather than a learned recogniser.
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{submission_shots/home.jpg}\hfill
-\includegraphics[width=0.48\linewidth]{submission_shots/stitch.jpg}
-\caption{Left: How it works (pipeline explanation). Right: Build a panorama with bundled Balme Library views, SIFT, Lowe ratio 0.75, RANSAC 5\,px.}
-\label{fig:ui1}
-\end{figure*}
+This project implements that chain explicitly so every decision is inspectable:
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.48\linewidth]{submission_shots/compare.jpg}\hfill
-\includegraphics[width=0.48\linewidth]{submission_shots/robustness.jpg}
-\caption{Left: Compare detectors (SIFT vs ORB table). Right: Robustness lab (rotation sweep).}
-\label{fig:ui2}
-\end{figure*}
+\begin{enumerate}
+  \item Detect distinctive keypoints and compute descriptors with SIFT and with ORB.
+  \item Match descriptors between overlapping pairs and visualise correspondences before and after RANSAC.
+  \item Estimate a homography, warp images into one coordinate system, and stitch a panorama from at least three views.
+  \item Compare the detectors on match count, inlier ratio, reprojection error, overlap SSIM, and time.
+  \item Measure how rotation, scale, illumination, and viewpoint change affect the inlier ratio.
+\end{enumerate}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.98\linewidth]{submission_shots/report.jpg}
-\caption{Project report tab: download and embed the full CVPR PDF.}
-\label{fig:uireport}
-\end{figure}
+The shared geometry lives in \texttt{src/}. Both the Streamlit app and
+\texttt{scripts/run\_experiments.py} call the same \texttt{match\_pair} and
+\texttt{stitch\_images} entry points; the UI never reimplements the homography.
 
-\section{Method (source excerpts)}
+The pipeline is:
 
-Shared code is in \texttt{src/}. The app never duplicates the geometry: both the UI and \texttt{scripts/run\_experiments.py} call \texttt{match\_pair} / \texttt{stitch\_images}.
+\textit{overlapping photos $\rightarrow$ prepare $\rightarrow$ detect and describe
+$\rightarrow$ match $\rightarrow$ RANSAC $\rightarrow$ homography $\rightarrow$ warp
+to the middle photo $\rightarrow$ feather blend $\rightarrow$ panorama.}
 
-\paragraph{Detect and describe.}
-SIFT and ORB, capped at 2000 keypoints.
+% ---------------------------------------------------------------------------
+\section{Implementation}
 
-\begin{lstlisting}[language=Python]
+Each image is resized so the long edge is 1200\,px, lightly Gaussian-smoothed,
+and optionally CLAHE-equalised on the grayscale copy used for detection.
+Colour is kept for warping and blending. Keypoints are capped at 2000 per
+image so SIFT and ORB are compared under the same budget.
+
+\subsection{Detect and describe (\texttt{src/features.py})}
+
+SIFT builds a gradient-histogram descriptor designed to be stable under scale
+and rotation. ORB combines FAST corners with a rotated BRIEF binary
+descriptor; matching then uses Hamming distance.
+
+\begin{lstlisting}[language=Python,caption={Detector factory.}]
 def create_detector(name, n_features=2000):
     key = name.strip().upper()
     if key == "SIFT":
@@ -94,74 +169,150 @@ def create_detector(name, n_features=2000):
         return cv2.ORB_create(nfeatures=n_features)
 \end{lstlisting}
 
-\paragraph{Match.}
-Brute-force $k$NN ($k{=}2$) and Lowe's ratio test. SIFT uses $L_2$; ORB uses Hamming.
+\subsection{Match (\texttt{src/matching.py})}
 
-\begin{lstlisting}[language=Python]
+Brute-force $k$NN ($k{=}2$) followed by Lowe's ratio test at $0.75$. SIFT uses
+$L_2$; ORB uses Hamming.
+
+\begin{lstlisting}[language=Python,caption={Lowe ratio test on $k$NN pairs.}]
 knn = matcher.knnMatch(descriptors_a, descriptors_b, k=2)
-for best, second in knn:
+good = []
+for pair in knn:
+    if len(pair) < 2:
+        continue
+    best, second = pair
     if best.distance < ratio * second.distance:
         good.append(best)
 \end{lstlisting}
 
-\paragraph{RANSAC homography.}
-\texttt{cv2.findHomography} with a 5\,px threshold. Pairwise maps are composed into the \emph{middle} image's frame.
+\subsection{RANSAC homography (\texttt{src/homography.py})}
 
-\begin{lstlisting}[language=Python]
+\texttt{cv2.findHomography} with a 5\,px reprojection threshold. Consecutive
+pair maps are composed into the \emph{middle} image's frame so the canvas does
+not drift to one end of the sequence.
+
+\begin{lstlisting}[language=Python,caption={Robust homography.}]
 H, mask = cv2.findHomography(
-    pts_src, pts_dst, method=cv2.RANSAC,
-    ransacReprojThreshold=ransac_thresh)
+    pts_src.reshape(-1, 1, 2),
+    pts_dst.reshape(-1, 1, 2),
+    method=cv2.RANSAC,
+    ransacReprojThreshold=ransac_thresh,
+)
 \end{lstlisting}
 
-\paragraph{Stitch.}
-\texttt{warpPerspective} plus distance-transform feather blending. Metrics: inlier ratio, mean reprojection error, overlap SSIM.
+\subsection{Warp and stitch (\texttt{src/stitch.py})}
 
-\section{Evidence}
+Each view is \texttt{warpPerspective}-mapped onto a canvas large enough for
+all warped corners. Overlap is feather-blended with a distance-transform
+weight so seams do not appear as hard cuts.
 
-Primary scene: three Balme Library photographs (Wikimedia Commons, CC~BY~4.0). Pair 2--3 is a near-duplicate facade (SIFT 1426 inliers, SSIM $0.976$). Pair 1--2 is courtyard-to-facade (80 inliers, SSIM $0.762$, reprojection $1.38$\,px). Mean inlier ratio: SIFT $0.951$, ORB $0.909$. Full stitch about $0.8$\,s. Gain $0.35$ illumination leaves SIFT with zero inliers. Dance Department viewpoint frames barely overlap.
+\begin{lstlisting}[language=Python,caption={Distance-transform feather blend.}]
+dist = cv2.distanceTransform(binary, cv2.DIST_L2, 5)
+w = dist.astype(np.float32)
+acc += img.astype(np.float32) * w[..., None]
+weight += w
+blended = acc / np.maximum(weight[..., None], 1e-6)
+\end{lstlisting}
 
-\begin{figure*}[t]
+Quality metrics reported for every pair: initial matches, RANSAC inliers,
+inlier ratio, mean reprojection error, and overlap SSIM.
+
+% ---------------------------------------------------------------------------
+\section{Interactive application}
+
+Six tabs: How it works, Build a panorama, Compare detectors, Robustness lab,
+Saved results, and Project report. The last of those embeds the full CVPR
+paper; the screenshots below are the walkthrough a marker can click through
+on the live URL.
+
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.98\linewidth]{figures/input_scene_main.png}
-\caption{Input views for the primary stitch (Balme Library).}
-\label{fig:input}
-\end{figure*}
+\includegraphics[width=\linewidth]{home.jpg}
+\caption{How it works: pipeline explanation (detect $\rightarrow$ match
+$\rightarrow$ RANSAC $\rightarrow$ warp $\rightarrow$ blend).}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.48\linewidth]{figures/matches_after_sift.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/panorama_sift.png}
-\caption{Left: SIFT inliers after RANSAC. Right: stitched panorama.}
-\label{fig:pano}
-\end{figure*}
+\includegraphics[width=\linewidth]{stitch.jpg}
+\caption{Build a panorama: bundled Balme Library views, SIFT, Lowe ratio
+0.75, RANSAC 5\,px.}
+\end{figure}
 
-\begin{figure*}[t]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.48\linewidth]{figures/detector_comparison.png}\hfill
-\includegraphics[width=0.48\linewidth]{figures/robustness_illumination.png}
-\caption{Left: SIFT vs ORB summary. Right: illumination sweep (inlier ratio vs brightness gain).}
-\label{fig:bars}
-\end{figure*}
+\includegraphics[width=\linewidth]{compare.jpg}
+\caption{Compare detectors: side-by-side SIFT vs ORB table on the same pair.}
+\end{figure}
 
-\begin{table}[t]
+\begin{figure}[H]
 \centering
-\setlength{\tabcolsep}{2.4pt}
-{\scriptsize
-\begin{tabular}{|l|c|c|c|c|c|}
-\hline
-Det. & Pair & Init. & Inliers & Ratio & SSIM \\
-\hline\hline
+\includegraphics[width=\linewidth]{robustness.jpg}
+\caption{Robustness lab: rotation, scale, and illumination sweeps on a chosen pair.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{report.jpg}
+\caption{Project report tab: download and embed of the separate CVPR PDF
+(\texttt{feature\_based\_panorama.pdf}), not this packet.}
+\end{figure}
+
+% ---------------------------------------------------------------------------
+\section{Results}
+
+Primary scene: three Balme Library photographs (Wikimedia Commons, CC~BY~4.0).
+Pair 2--3 is a near-duplicate facade; pair 1--2 is courtyard-to-facade with
+less overlap. Mean inlier ratio across the two consecutive pairs: SIFT
+$0.951$, ORB $0.909$. Full stitch about $0.78$--$0.85$\,s. Brightness gain
+$0.35$ leaves SIFT with zero inliers. Dance Department viewpoint frames barely
+overlap.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{input_scene_main.png}
+\caption{Input views for the primary stitch (Balme Library, left to right).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\linewidth]{matches_after_sift.png}\hfill
+\includegraphics[width=0.48\linewidth]{panorama_sift.png}
+\caption{Left: SIFT inliers after RANSAC on a consecutive pair. Right:
+stitched panorama in the middle-image frame.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.48\linewidth]{detector_comparison.png}\hfill
+\includegraphics[width=0.48\linewidth]{robustness_illumination.png}
+\caption{Left: SIFT vs ORB summary on Balme Library. Right: illumination
+sweep (inlier ratio vs brightness gain).}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Detector comparison on Balme Library consecutive pairs.}
+\vspace{0.4em}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Detector & Pair & Initial & Inliers & Ratio & SSIM \\
+\midrule
 SIFT & 1--2 & 87 & 80 & 0.920 & 0.762 \\
 SIFT & 2--3 & 1451 & 1426 & 0.983 & 0.976 \\
-ORB & 1--2 & 34 & 28 & 0.824 & 0.712 \\
-ORB & 2--3 & 1490 & 1481 & 0.994 & 0.975 \\
-\hline
+ORB  & 1--2 & 34 & 28 & 0.824 & 0.712 \\
+ORB  & 2--3 & 1490 & 1481 & 0.994 & 0.975 \\
+\bottomrule
 \end{tabular}
-}
-\caption{Detector comparison on Balme Library consecutive pairs.}
-\label{tab:det}
 \end{table}
 
+SIFT is the tighter geometric estimator on the harder pair (reprojection
+$1.38$\,px vs $2.15$\,px for ORB on pair 1--2). ORB remains competitive when
+the facade is almost duplicated (pair 2--3). Both methods need genuine overlap:
+the Dance Department viewpoint set is a negative control and does not produce
+a usable panorama.
+
+% ---------------------------------------------------------------------------
 \section{How to reproduce}
 
 \begin{lstlisting}[language=bash]
@@ -170,6 +321,11 @@ python scripts/run_experiments.py
 streamlit run streamlit_app.py
 \end{lstlisting}
 
-Or open the live URL above. Bundled photos can be replaced with phone captures (30--50\% overlap, left to right) in \texttt{data/scenes/}.
+Or open the live URL in Section~1. Bundled photographs can be replaced with
+phone captures (about 30--50\% overlap, captured left to right) in
+\texttt{data/scenes/}. Experiment CSVs land in \texttt{report/results/};
+figures land in \texttt{report/figures/}. The CVPR paper is rebuilt with
+\texttt{python scripts/build\_report.py}; that command also rebuilds this
+packet from \texttt{report/submission.tex}.
 
 \end{document}

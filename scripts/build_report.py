@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile report/main.tex with the CVPR LaTeX template via Tectonic."""
+"""Compile the CVPR paper (main.tex) and the one-column submission packet."""
 
 from __future__ import annotations
 
